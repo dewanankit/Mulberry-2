@@ -1,0 +1,23 @@
+Branch Organization
+
+development branches:
+
+name: development1, development2, ...
+description: contains features in development,
+	project may not compile or run in these branches
+
+name: master
+description: acts as feature checkpoints,
+	contains finished features,
+	project must not contain syntatical errors,
+	but it may not run
+
+name: beta
+description: a set of finished features
+	integrated into a ready to release state,
+	project must compile and run, may contain bugs
+
+name: release
+description: a set of finished features
+	integrated into a ready to release state,
+	project must compile and run, more stable than beta

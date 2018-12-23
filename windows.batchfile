@@ -1,0 +1,47 @@
+start "ankit" "python" program_main.py 8801 ankit
+start "bobby" "python" program_main.py -c localhost -p 8801 8802 bobby
+ping 127.255.255.255 -n 1 -w 1000
+start "candy" "python" program_main.py -c localhost -p 8802 8803 candy
+ping 127.255.255.255 -n 1 -w 1000
+start "danny" "python" program_main.py -c localhost -p 8801 8804 danny
+ping 127.255.255.255 -n 1 -w 1000
+start "elisa" "python" program_main.py -c localhost -p 8801 8805 elisa
+ping 127.255.255.255 -n 1 -w 1000
+start "fiona" "python" program_main.py -c localhost -p 8805 8806 fiona
+ping 127.255.255.255 -n 1 -w 1000
+start "germy" "python" program_main.py -c localhost -p 8805 8807 germy
+ping 127.255.255.255 -n 1 -w 1000
+start "honne" "python" program_main.py -c localhost -p 8805 8808 honne -e 10
+ping 127.255.255.255 -n 1 -w 1000
+pause
+start "inuie" "python" program_main.py -c localhost -p 8804 8809 inuie
+ping 127.255.255.255 -n 1 -w 1000
+start "jesse" "python" program_main.py -c localhost -p 8804 8810 jesse
+ping 127.255.255.255 -n 1 -w 1000
+pause
+start "knuth" "python" program_main.py -c localhost -p 8804 8811 knuth
+ping 127.255.255.255 -n 1 -w 1000
+start "lenin" "python" program_main.py -c localhost -p 8804 8812 lenin
+ping 127.255.255.255 -n 1 -w 1000
+start "minna" "python" program_main.py -c localhost -p 8804 8813 minna
+ping 127.255.255.255 -n 1 -w 1000
+start "nancy" "python" program_main.py -c localhost -p 8804 8814 nancy
+ping 127.255.255.255 -n 1 -w 1000
+start "ocean" "python" program_main.py -c localhost -p 8804 8815 ocean
+ping 127.255.255.255 -n 1 -w 1000
+start "penny" "python" program_main.py -c localhost -p 8804 8816 penny
+ping 127.255.255.255 -n 1 -w 1000
+pause
+start "queen" "python" program_main.py -c localhost -p 8804 8817 queen
+ping 127.255.255.255 -n 1 -w 1000
+start "rolla" "python" program_main.py -c localhost -p 8804 8818 rolla
+ping 127.255.255.255 -n 1 -w 1000
+start "senta" "python" program_main.py -c localhost -p 8804 8819 senta
+ping 127.255.255.255 -n 1 -w 1000
+start "tommy" "python" program_main.py -c localhost -p 8804 8820 tommy
+ping 127.255.255.255 -n 1 -w 1000
+start "uiiii" "python" program_main.py -c localhost -p 8804 8821 uiiii
+ping 127.255.255.255 -n 1 -w 1000
+start "venus" "python" program_main.py -c localhost -p 8804 8822 venus
+ping 127.255.255.255 -n 1 -w 1000
+pause
