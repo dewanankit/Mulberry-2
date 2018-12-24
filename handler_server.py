@@ -87,7 +87,9 @@ class ServerHandler:
             joinerip=parameters[2]
             joinerport=int(parameters[3])
             joinername=parameters[4]
-            joinerconn=Conn(joinerip,joinerport,joinername)
+            joinerlowrange=int(parameters[5])
+            joinerhighrange = int(parameters[6])
+            joinerconn=Conn(joinerip,joinerport,joinername,joinerlowrange,joinerhighrange)
             # add the connection to my last level
             self.state.lastlevel.append(joinerconn)
             protocol.sendMessage("JOIN_OKAY")
@@ -105,7 +107,9 @@ class ServerHandler:
                 contactip=parameters[0]
                 contactport=int(parameters[1])
                 contactname=parameters[2]
-                newconn=Conn(contactip,contactport,contactname)
+                contactlowRange = int(parameters[3])
+                contacthighRange = int(parameters[4])
+                newconn=Conn(contactip,contactport,contactname,contactlowRange,contacthighRange)
                 newlist.append(newconn)
             if leveloflist==len(self.state.conns):
                 self.state.addlevel(newlist)
@@ -136,7 +140,7 @@ class ServerHandler:
                 contactip=parameters[0]
                 contactport=int(parameters[1])
                 contactname=parameters[2]
-                newconn=Conn(contactip,contactport,contactname)
+                newconn=Conn(contactip,contactport,contactname,self.state.lowRange, self.state.highRange)
                 newlist.append(newconn)
             self.state.lastlevel=newlist
             protocol.sendMessage("JOIN_OKAY")
@@ -257,16 +261,20 @@ class ServerHandler:
             requesterConnAddr = parameters[2]
             requesterConnPort = int(parameters[3])
             requesterConnName = parameters[4]
-            requesterConn = Conn(requesterConnAddr, requesterConnPort, requesterConnName)
-            winnerConnAddr    = parameters[5]
-            winnerConnPort    = int(parameters[6])
-            winnerConnName    = parameters[7]
-            winnerConn        = Conn(winnerConnAddr, winnerConnPort, winnerConnName)
+            requesterConnLowRange = int(parameters[5])
+            requesterConnHighRange = int(parameters[6])
+            requesterConn = Conn(requesterConnAddr, requesterConnPort, requesterConnName,requesterConnLowRange,requesterConnHighRange)
+            winnerConnAddr    = parameters[7]
+            winnerConnPort    = int(parameters[8])
+            winnerConnName    = parameters[9]
+            winnerConnLowRange = int(parameters[10])
+            winnerConnHighRange = int(parameters[11])
+            winnerConn        = Conn(winnerConnAddr, winnerConnPort, winnerConnName, winnerConnLowRange, winnerConnHighRange)
             self.handleOwnSacrifice(winnerConn, requesterConn)
             protocol.sendMessage("SacrificingAndJoiningAnotherNetwork")
 
         elif data.startswith('REQUEST_INFO_LAST_LEVEL'):
-            replymsg = 'LAST_LEVEL_DETAILS '
+            replymsg = 'LAST_LEVEL_DETAILS ' + str(self.state.lowRange) +" "+ str(self.state.highRange)
             for peer in self.state.lastlevel:
                 replymsg += '\n'+peer.addr+' '+str(peer.port)+' '+peer.name
             print('replymsg', replymsg)
@@ -344,8 +352,9 @@ class ServerHandler:
             newpeerlist=self.state.conns[level][:] # shallow copy the list
             winner=(filter(lambda x:(x.addr==self.joinatnormal_responses[0][3].addr and
                     x.port==self.joinatnormal_responses[0][3].port),newpeerlist))[0]
+            joinerconnNew = Conn(joinerconn.addr,joinerconn.port,joinerconn.name, winner.lowRange,winner.highRange)
             try:
-                newpeerlist[newpeerlist.index(winner)]=joinerconn
+                newpeerlist[newpeerlist.index(winner)]=joinerconnNew
             except ValueError:
                 pass
             ClientHandler(self.state,joinerconn,'join3',(newpeerlist,level)).startup()
@@ -367,15 +376,18 @@ class ServerHandler:
         # send messages to all the peers in the group
         # and then send client a contact list
         # check split
+        print('This function was called!!!!!!!!!!!!!!!!!!!!!!!!')
         joinerip=parameters[2]
         joinerport=int(parameters[3])
         joinername=parameters[4]
-        joinerconn=Conn(joinerip,joinerport,joinername)
+        joinerconn=Conn(joinerip,joinerport,joinername,self.state.lowRange,self.state.highRange)
+        print('self.state.lowRange',self.state.lowRange,'self.state.highRange',self.state.highRange,'joinername',joinername)
         lastlevel=self.state.lastlevel[:]
         for peer in self.state.lastlevel:
             ClientHandler(self.state,peer,'join2',joinerconn).startup()
             #ClientHandler(self.state,peer,'join2',Conn(joinerip,joinerport,joinername)).startup()
         lastlevel.append(joinerconn)
+        self.printinfowithranges()
         # Whenever adding someone to my last level, I will also send it my range!
         ClientHandler(self.state,joinerconn,'join6',(lastlevel, self.state.lowRange, self.state.highRange)).startup()
         # don't need to append because I will send myself a message
@@ -394,19 +406,26 @@ class ServerHandler:
             mygroup=indexofconn*4/maxnumberofpeeratlastlevel
             diff =  self.state.highRange - self.state.lowRange+1
             rangeSplit = diff/4
+            oldRange = self.state.lowRange
             self.state.highRange = self.state.lowRange + rangeSplit*(mygroup+1)-1
             self.state.lowRange = self.state.lowRange + rangeSplit*mygroup
             stdout.write("checksplit: my group "+str(mygroup)+"\n")
-            self.state.lastlevel=newlist[mygroup*maxnumberofpeeratlastlevel/4:(mygroup+1)*maxnumberofpeeratlastlevel/4]
+            newlastLevel=newlist[mygroup*maxnumberofpeeratlastlevel/4:(mygroup+1)*maxnumberofpeeratlastlevel/4]
+            self.state.lastlevel = []
+            for peer in newlastLevel:
+                self.state.lastlevel.append(Conn(peer.addr, peer.port, peer.name, self.state.lowRange,self.state.highRange))
             # then get the last-1 peers and do something
             # list is supposed to be myself and random peers from each group
             list=[None]*4
             for x in range(0,4):
+                lRange = oldRange + rangeSplit*(x)
+                hRange = oldRange + rangeSplit*(x+1)-1
                 if x==mygroup:
                     myconn=self.state.myconn
-                    list[x]=myconn
+                    list[x]=Conn(myconn.addr,myconn.port, myconn.name, lRange, hRange)
                 else:
-                    list[x]=newlist[x*maxnumberofpeeratlastlevel/4+randrange(0,maxnumberofpeeratlastlevel/4)]
+                    connection=newlist[x*maxnumberofpeeratlastlevel/4+randrange(0,maxnumberofpeeratlastlevel/4)]
+                    list[x] = Conn(connection.addr,connection.port, connection.name, lRange, hRange)
                 #stdout.write("checksplit: group "+str(x)+"\n")
             # last update last-1 given list
             self.updatelast(list)
@@ -429,11 +448,11 @@ class ServerHandler:
             stdout.write("level"+str(i)+": "+str(len(self.state.conns[i]))+"hosts\n")
             for j in range(0,len(self.state.conns[i])):
                 conn=self.state.conns[i][j]
-                stdout.write(conn.addr+" "+str(conn.port)+" "+conn.name+"\n")
+                stdout.write(conn.addr+" "+str(conn.port)+" "+conn.name+ " "+ str(conn.lowRange) + " " +str(conn.highRange)+"\n")
         stdout.write("lastlevel: "+str(len(self.state.lastlevel))+"hosts\n")
         for j in range(0,len(self.state.lastlevel)):
             conn=self.state.lastlevel[j]
-            stdout.write(conn.addr+" "+str(conn.port)+" "+conn.name+"\n")
+            stdout.write(conn.addr+" "+str(conn.port)+" "+conn.name+ " "+ str(conn.lowRange)+ " " + str(conn.highRange)+"\n")
         stdout.write("END STATE PRINT\n")
 
     def exitinit(self):
@@ -551,17 +570,16 @@ class ServerHandler:
         for i in range(0,4):
             if(self.state.conns[len(self.state.conns)-1][i] == self.state.myconn):
                 index = i
-                print(self.state.conns[len(self.state.conns)-1][i].name,'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                print('indexQ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',i)
-
         self.state.conns[len(self.state.conns)-1][index] = newlist[randomIndex]
         self.state.lastlevel = []
         print('winnerConn.name', winnerConn.name)
         print('requesterConn.name', requesterConn.name)
         ClientHandler(self.state, requesterConn, 'RequestInfoLastLevel', (self,requesterListOfLastLevelNodes)).startup()
 
-    def AddingInfoToLastLevel(self, requesterListOfLastLevelNodes):
+    def AddingInfoToLastLevel(self, requesterListOfLastLevelNodes, lowRange, highRange):
         self.state.lastlevel.append(self.state.myconn)
+        self.state.lowRange = lowRange
+        self.state.highRange = highRange
         for peer in  requesterListOfLastLevelNodes:
             site = peer.split()
             addr = site[0]

@@ -2,7 +2,7 @@ start "abra" "python" program_main.py 8801 abra
 ping 127.255.255.255 -n 1 -w 1000
 start "bobby" "python" program_main.py -c localhost -p 8801 8802 bobby
 ping 127.255.255.255 -n 1 -w 1000
-start "candy" "python" program_main.py -c localhost -p 8801 8803 candy
+start "candy" "python" program_main.py -c localhost -p 8801 8803 candy -e 10
 ping 127.255.255.255 -n 1 -w 1000
 start "danny" "python" program_main.py -c localhost -p 8801 8804 danny
 ping 127.255.255.255 -n 1 -w 1000

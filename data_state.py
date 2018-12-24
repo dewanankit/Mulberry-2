@@ -17,8 +17,8 @@ class State:
         self.lock=False
         self.isAlive = True
         self.timeStamp = {}
-        self.lowRange = 0
-        self.highRange = 1023
+        self.lowRange = lowRange
+        self.highRange = highRange
         return
 
     def addlevel(self,list):

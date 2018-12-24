@@ -67,14 +67,14 @@ class ClientHandler:
             replymsg="JOIN_INIT "+self.state.myconn.name+" "+self.state.myconn.addr+" "+str(self.state.myconn.port)+" "+self.state.myconn.name
             p.sendMessage(replymsg)
         elif self.mode=='join2':
-            replymsg="JOIN_BOTT "+self.state.myconn.name+" "+self.extra.addr+" "+str(self.extra.port)+" "+self.extra.name
+            replymsg="JOIN_BOTT "+self.state.myconn.name+" "+self.extra.addr+" "+str(self.extra.port)+" "+self.extra.name+" "+str(self.extra.lowRange) +" "+str(self.extra.highRange)
             #reactor.callLater(1, p.sendMessage, replymsg)
             p.sendMessage(replymsg)
         elif self.mode=='join3':
             extra1,level=self.extra
             replymsg="JOIN_LIST "+self.state.myconn.name+" "+str(level)+" "+str(len(extra1))
             for conn in extra1:
-                replymsg=replymsg+"\n"+conn.addr+" "+str(conn.port)+" "+conn.name
+                replymsg=replymsg+"\n"+conn.addr+" "+str(conn.port)+" "+conn.name+" "+str(conn.lowRange)+" "+str(conn.highRange)
             p.sendMessage(replymsg)
         elif self.mode=='join4':
             # simply send request for info with joiner ip and address and name
@@ -167,7 +167,7 @@ class ClientHandler:
             p.sendMessage(replymsg)
         elif self.mode =='SacrificeAndJoinAnotherNetwork':
             callback, requesterConn = self.extra
-            replymsg = 'BECOME_SACRIFICE_AND_JOIN_ANOTHER_NETWORK '+self.state.myconn.name + ' ' + requesterConn.addr + ' ' + str(requesterConn.port) +' '+requesterConn.name + ' ' + self.state.myconn.addr + ' ' + str(self.state.myconn.port) + ' ' + self.state.myconn.name
+            replymsg = 'BECOME_SACRIFICE_AND_JOIN_ANOTHER_NETWORK '+self.state.myconn.name + ' ' + requesterConn.addr + ' ' + str(requesterConn.port)+' '+requesterConn.name+' '+str(requesterConn.lowRange)+' '+str(requesterConn.highRange)+' '+self.state.myconn.addr + ' ' +str(self.state.myconn.port) + ' ' + self.state.myconn.name+' '+str(self.state.myconn.lowRange)+' '+str(self.state.myconn.highRange)
             print(replymsg)
             p.sendMessage(replymsg)
             #p.sendMessage(replymsg)
@@ -260,10 +260,12 @@ class ClientHandler:
             print('Got response for last level')
             callback, requesterListOfLastLevelNodes = self.extra
             parameters = data.split('\n')
+            lowRange = int(parameters[0].split()[1])
+            highRange = int(parameters[0].split()[2])
             for i in range(1, len(parameters)):
                 print(parameters[i])
                 requesterListOfLastLevelNodes.append(parameters[i])
-            callback.AddingInfoToLastLevel(requesterListOfLastLevelNodes)
+            callback.AddingInfoToLastLevel(requesterListOfLastLevelNodes, lowRange, highRange)
             protocol.transport.loseConnection()
         else:
             print('closing connection')

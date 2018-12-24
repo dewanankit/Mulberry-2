@@ -46,6 +46,8 @@ def main():
     state.lock=True
     if argresult.connect!=None and argresult.port!=None:
         client=setupclient(state,argresult.connect[0],argresult.port[0])
+    else:
+        state=State('127.0.0.1',argresult.listen[0],argresult.name[0],0,1023)
     server=setupserver(state)
     if argresult.exit!=None:
         reactor.callLater((argresult.exit[0]), (server.exitinit))
