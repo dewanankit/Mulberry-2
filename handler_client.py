@@ -120,17 +120,25 @@ class ClientHandler:
             p.sendMessage(replymsg)
         elif self.mode=='DeleteMe':
             print("Requesting Delete")
-            replymsg="DELETE_ME "+self.state.myconn.name+" "+self.state.myconn.addr+" "+str(self.state.myconn.port)+" "+self.state.myconn.name
+            replymsg="DELETE_ME "+self.state.myconn.name+" "+self.state.myconn.addr+" "+str(self.state.myconn.port)+" "+self.state.myconn.name+" "+str(self.state.lowRange)+' '+str(self.state.highRange)
             p.sendMessage(replymsg)
         elif self.mode=='RequestingInfoLastLevel':
             print("Requesting state from my peers in n-1 level")
             replymsg = "REQUESTING_INFO_LAST_LEVEL "+self.state.myconn.name+" "+self.state.myconn.addr+" "+str(self.state.myconn.port)+" "+self.state.myconn.name
             p.sendMessage(replymsg)
         elif self.mode=='RequestNodesLastLevel':
-            print("Requesting all peer nodes in n-1 level to share their nodes in n-1 level")
+            print(self.remote.name,"Requesting all peer nodes in n-1 level to share their nodes in n-1 level!!!!!!!!!!!!!!!!!!!!!!!")
             replymsg = "REQUEST_NODES_LAST_LEVEL "+self.state.myconn.name
             p.sendMessage(replymsg)
         elif self.mode=='InsertLastLevelDeleteN-1LevelShareWithLastLevel':
+            print("Trying to send a message across!!!!!!!!")
+            replymsg = 'SHRINK_ONE_LAYER_UPDATE_LAST_LEVEL '+self.state.myconn.addr + ' '+ str(self.state.myconn.port)+' ' +self.state.myconn.name+' '+str(self.state.lowRange)+' '+str(self.state.highRange)
+            callBack, newPeers = self.extra
+            print('newPeers',newPeers)
+            for newPeer in newPeers:
+                replymsg+='\n'+newPeer.addr+' '+str(newPeer.port)+' '+newPeer.name+' '+str(newPeer.lowRange)+' '+str(newPeer.highRange)
+            p.sendMessage(replymsg)
+            '''
             if(self.remote == None):
                 print("remote was None")
             else:
@@ -153,6 +161,7 @@ class ClientHandler:
             replymsg='HELLO'
             print(replymsg)
             p.sendMessage(replymsg)
+            '''
         elif self.mode=='DeleteOneNodeGrantOneNode':
             print("Did we even get here?")
             print("WTF")
@@ -171,7 +180,7 @@ class ClientHandler:
             print(replymsg)
             p.sendMessage(replymsg)
             #p.sendMessage(replymsg)
-        elif self.mode=='RequestInfoLastLevel' :
+        elif self.mode=='RequestInfoLastLevel':
             callback, requesterListOfLastLevelNodes = self.extra
             replymsg = 'REQUEST_INFO_LAST_LEVEL '+ self.state.myconn.name
             p.sendMessage(replymsg)
@@ -183,6 +192,10 @@ class ClientHandler:
             connection = self.extra
             print('connection.addr!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',connection.addr)
             replymsg = 'JOIN_THIS_SACRIFICE_NODE_TO_OUR_NETWORK '+connection.addr + ' '+str(connection.port) + ' ' + connection.name
+            p.sendMessage(replymsg)
+        elif self.mode=='HelpUpdateThisLevel':
+            callback, level = self.extra
+            replymsg = 'HELP_UPDATE_THIS_LEVEL '+self.state.myconn.name +' '+str(level) 
             p.sendMessage(replymsg)
         else:
             p.transport.loseConnection()
@@ -262,11 +275,35 @@ class ClientHandler:
             parameters = data.split('\n')
             lowRange = int(parameters[0].split()[1])
             highRange = int(parameters[0].split()[2])
+            lenConns = int(parameters[0].split()[3])
             for i in range(1, len(parameters)):
                 print(parameters[i])
                 requesterListOfLastLevelNodes.append(parameters[i])
-            callback.AddingInfoToLastLevel(requesterListOfLastLevelNodes, lowRange, highRange)
+            callback.AddingInfoToLastLevel(requesterListOfLastLevelNodes, lowRange, highRange, lenConns)
             protocol.transport.loseConnection()
+        elif self.mode=='HelpUpdateThisLevel':
+            if data.startswith('INFO_FOR_LEVEL_N'):
+                callback, l = self.extra
+                params = data.split('\n')
+                levels = int(params[0].split()[1])
+                newPeerName = params[0].split()[3] 
+                print('levels',levels)
+                newConnectionLayer = []
+                for i in range(1, len(params)):
+                    peerDetails = params[i].split()
+                    peerAddr = peerDetails[0]
+                    peerPort = int(peerDetails[1])
+                    peerName = peerDetails[2]
+                    peerLowRange = int(peerDetails[3])
+                    peerHighRange = int(peerDetails[4])
+                    if(peerName == newPeerName):
+                        connection = Conn(self.state.myconn.addr, self.state.myconn.port,self.state.myconn.name, peerLowRange, peerHighRange)
+                    else:
+                        connection = Conn(peerAddr, peerPort,peerName, peerLowRange, peerHighRange)
+                    newConnectionLayer.append(connection)
+                self.state.conns[levels] = newConnectionLayer
+                print("We were successful")
+                callback.printinfowithranges()
         else:
             print('closing connection')
             protocol.transport.loseConnection()

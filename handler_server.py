@@ -5,7 +5,7 @@ from twisted.internet import reactor
 from random import randrange
 import random
 from sys import stdout
-
+import math
 from handler_client import ClientHandler
 from data_state import Conn
 
@@ -209,7 +209,9 @@ class ServerHandler:
             leaverAddr = parameters[2]
             leaverPort = int(parameters[3])
             leaverName = parameters[4]
-            leaverConn = Conn(leaverAddr, leaverPort, leaverName)
+            leaverLowRange = int(parameters[5])
+            leaverHighRange = int(parameters[6])
+            leaverConn = Conn(leaverAddr, leaverPort, leaverName, leaverLowRange, leaverHighRange)
             self.removeFromLastLevel(leaverConn)
             self.checkForShrinkage()
         elif data.startswith("REQUESTING_INFO_LAST_LEVEL "):
@@ -220,10 +222,26 @@ class ServerHandler:
             replymsg = "LAST_LEVEL_NODE_RESULT "+self.state.myconn.name+'#'
             lastlevelList = self.state.lastlevel[:]
             for lastLevelNode in lastlevelList:
-                replymsg+=lastLevelNode.addr+" "+str(lastLevelNode.port) +" "+lastLevelNode.name+"#"
+                replymsg+=lastLevelNode.addr+" "+str(lastLevelNode.port) +" "+lastLevelNode.name+' '+ str(lastLevelNode.lowRange) +' '+ str(lastLevelNode.highRange) +"#"
             protocol.sendMessage(replymsg)
         elif data.startswith('INSERT_LAST_LEVEL_DELETE_N-1_LEVEL_SHARE_WITH_LASTLEVEL'):
             print('GOT A MESSAGE FINALLY !!!!!!!!!!!!!!!!!!!!!!!!!')
+        elif data.startswith('SHRINK_ONE_LAYER_UPDATE_LAST_LEVEL'):
+            self.state.lastlevel = []
+            parameters = data.split('\n')
+            self.state.lowRange = int(parameters[0].split()[4])
+            self.state.highRange = int(parameters[0].split()[5])
+            for i in range (1,len(parameters)):
+                newPeer = parameters[i].split()
+                newPeerAddr = newPeer[0]
+                newPeerPort = int(newPeer[1])
+                newPeerName = newPeer[2]
+                newPeerLowRange = int(newPeer[3])
+                newPeerHighRange = int(newPeer[4])
+                newPeerConnection = Conn(newPeerAddr,newPeerPort,newPeerName,newPeerLowRange,newPeerHighRange)
+                self.state.lastlevel.append(newPeerConnection)
+            self.state.conns = self.state.conns[:len(self.state.conns)-1]
+            self.printinfowithranges()
             '''
             nodes = data.split('#')
             
@@ -274,7 +292,7 @@ class ServerHandler:
             protocol.sendMessage("SacrificingAndJoiningAnotherNetwork")
 
         elif data.startswith('REQUEST_INFO_LAST_LEVEL'):
-            replymsg = 'LAST_LEVEL_DETAILS ' + str(self.state.lowRange) +" "+ str(self.state.highRange)
+            replymsg = 'LAST_LEVEL_DETAILS ' + str(self.state.lowRange) +" "+ str(self.state.highRange)+' '+str(len(self.state.conns))
             for peer in self.state.lastlevel:
                 replymsg += '\n'+peer.addr+' '+str(peer.port)+' '+peer.name
             print('replymsg', replymsg)
@@ -295,10 +313,17 @@ class ServerHandler:
             name = parameters[3]
             connection = Conn(addr, port, name)
             self.state.lastlevel.append(connection)
-            print('------------------------------------------------------------')
             self.printinfowithranges()
-            print('------------------------------------------------------------')
             protocol.sendMessage('Done. Close Connection')
+
+        elif data.startswith('HELP_UPDATE_THIS_LEVEL'):
+            parameters = data.split()
+            level = int(parameters[2])
+            replymsg = 'INFO_FOR_LEVEL_N ' + str(level) +' ' +str(len(self.state.conns))+' '+self.state.myconn.name
+            for peer in self.state.conns[level]:
+                replymsg+='\n'+peer.addr+' '+str(peer.port)+' '+peer.name+' '+str(peer.lowRange)+' '+str(peer.highRange)
+            print(replymsg)
+            protocol.sendMessage(replymsg)
         else:
             print(data)
             protocol.sendMessage("NO SUPPORT")
@@ -506,7 +531,7 @@ class ServerHandler:
                 max = lastLevelSize
                 winnerConn = peerConn
 
-        if(max == self.minnumberofpeeratlastlevel):
+        if(max <= self.minnumberofpeeratlastlevel):
             print("We'll have to collapse the level")
             print("requesting last level info from all my n-1 level peers")
             peerList = self.state.conns[len(self.state.conns)-1][:]
@@ -523,6 +548,14 @@ class ServerHandler:
         ClientHandler(self.state, winnerConn, 'DeleteOneNodeGrantOneNode').startup()
         print('winner was ',winnerConn.name)
 
+    def min(self,a,b):
+        if(a<b):
+            return a
+        return b
+    def max(self,a,b):
+        if(a>b):
+            return a
+        return b
     def reduceByOneLevelAndShareInfo(self, lastLevelNodesPeerListMessage):
         for message in lastLevelNodesPeerListMessage:
             parameters = message.split('#')
@@ -531,19 +564,29 @@ class ServerHandler:
                 ip = vals[0]
                 port = int(vals[1])
                 name = vals[2]
-                newConn = Conn(ip,port, name)
+                lowRange = int(vals[3])
+                highRange = int(vals[4])
+                newConn = Conn(ip,port, name,lowRange, highRange)
                 if(newConn in self.state.lastlevel):
                     print(newConn.name + " already exists in the last level!")
                 else:
                     self.state.lastlevel.append(newConn)
                     print(newConn.name + " added to the last level!")
-
-        newlist = self.state.conns[len(self.state.conns)-1]
+        lowMin=float("inf")
+        highMax = 0
+        for peer in self.state.lastlevel:
+            lowMin = min(lowMin,peer.lowRange)
+            highMax = max(highMax, peer.highRange)
+        self.state.lowRange = lowMin
+        self.state.highRange = highMax
+        for peer in self.state.lastlevel:
+            peer.lowRange = lowMin
+            peer.highRange = highMax
+        newlist = self.state.lastlevel[:]
         newlist.remove(self.state.myconn)
         for peer in newlist:
             print("Shared with Q!!!!!!!!!!!!!!!!!!!! "+peer.name)
-            ClientHandler(self.state, peer, 'InsertLastLevelDeleteN-1LevelShareWithLastLevel',lastLevelNodesPeerListMessage).startup()
-
+            ClientHandler(self.state, peer, 'InsertLastLevelDeleteN-1LevelShareWithLastLevel',(self,self.state.lastlevel[:])).startup()
         print(len(self.state.conns))
         self.state.conns = self.state.conns[:len(self.state.conns)-1]
         print(len(self.state.conns))
@@ -571,12 +614,15 @@ class ServerHandler:
             if(self.state.conns[len(self.state.conns)-1][i] == self.state.myconn):
                 index = i
         self.state.conns[len(self.state.conns)-1][index] = newlist[randomIndex]
-        self.state.lastlevel = []
         print('winnerConn.name', winnerConn.name)
         print('requesterConn.name', requesterConn.name)
         ClientHandler(self.state, requesterConn, 'RequestInfoLastLevel', (self,requesterListOfLastLevelNodes)).startup()
 
-    def AddingInfoToLastLevel(self, requesterListOfLastLevelNodes, lowRange, highRange):
+    def AddingInfoToLastLevel(self, requesterListOfLastLevelNodes, lowRange, highRange, lenConns):
+        oldList = self.state.lastlevel
+        self.state.lastlevel = []
+        myconn = self.state.myconn
+        self.state.myconn = Conn(myconn.addr, myconn.port, myconn.name, lowRange, highRange)
         self.state.lastlevel.append(self.state.myconn)
         self.state.lowRange = lowRange
         self.state.highRange = highRange
@@ -585,10 +631,17 @@ class ServerHandler:
             addr = site[0]
             port = int(site[1])
             name = site[2]
-            peerConnection = Conn(addr, port, name)
+            peerConnection = Conn(addr, port, name, lowRange, highRange)
             if(peerConnection not in self.state.lastlevel):
                 self.state.lastlevel.append(peerConnection)
         self.printinfowithranges()
+        self.state.conns = [None]*lenConns
+        newlist = self.state.lastlevel[:]
+        newlist.remove(self.state.myconn)
+        for level in range(0, lenConns):
+            randIndex = random.randint(0,len(newlist)-1)
+            ClientHandler(self.state, newlist[randIndex], 'HelpUpdateThisLevel', (self,level)).startup()
+            print('name!!!!!!!!!!!!!!',newlist[randIndex].name)
 
         '''
         
