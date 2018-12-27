@@ -189,7 +189,7 @@ class ClientHandler:
             p.sendMessage(replymsg)
         elif self.mode=='joinThisSacrificeNodeToOurNetwork':
             connection = self.extra
-            print('connection.addr!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',connection.addr)
+            #print('connection.addr!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',connection.addr)
             replymsg = 'JOIN_THIS_SACRIFICE_NODE_TO_OUR_NETWORK '+connection.addr + ' '+str(connection.port) + ' ' + connection.name
             p.sendMessage(replymsg)
         elif self.mode=='HelpUpdateThisLevel':
