@@ -213,8 +213,8 @@ class ClientHandler:
             p.sendMessage(replymsg)
         elif self.mode=='checkAlternateAliveStatus':
             callback, replacementConnection, level, peerConnectionsForHelp = self.extra
-            replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS'
-            p.sendMessage('CHECK_ALTERNATE_ALIVE_STATUS')
+            replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS ' + str(replacementConnection.lowRange) +' '+str(replacementConnection.highRange)
+            p.sendMessage(replymsg)
         else:
             p.transport.loseConnection()
 

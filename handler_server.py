@@ -365,9 +365,11 @@ class ServerHandler:
             else:
                 self.searchNetworkForAnExtraNode(level)
         elif data.startswith('CHECK_ALTERNATE_ALIVE_STATUS'):
-
+            parameters=data.split()
+            lRange = int(parameters[1])
+            hRange = int(parameters[2])
             print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@someone is requesting things from me!!!!")
-            if(self.state.isAlive==True):
+            if(self.state.isAlive==True and self.state.lowRange>=lRange and self.state.highRange<= hRange):
                 replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS True '+str(len(self.state.lastlevel))
                 for conn in self.state.lastlevel:
                     replymsg +='\n'+conn.addr+' '+str(conn.port)+' '+conn.name
@@ -773,13 +775,15 @@ class ServerHandler:
                 break
         randomIndex = random.randint(0, len(connections)-1)
         randomReplacement = connections[randomIndex]
+        print('Connections',connections)
+        for conn in connections:
+            print('details',conn.addr, conn.port, conn.name)
         conn.addr = randomReplacement.addr
         conn.port = randomReplacement.port
         conn.name = randomReplacement.name
         print('~~~~~~~~~conn details',conn.addr, conn.port, conn.name)
         print('~~~~~~~~~random replacement details', randomReplacement.addr,randomReplacement.port, randomReplacement.name)
         self.printinfowithranges()
-        time.sleep(30)
 
 
 
