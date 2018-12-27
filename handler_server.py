@@ -73,7 +73,22 @@ class ServerHandler:
     def processRequest(self, protocol, data):
         ## reply a greeting, to test out connection
         print(data)
-        if data=="HELLO":
+        if data.startswith('HEARTBEAT'):
+            parameters = data.split()
+            replymsg = 'HEARTBEAT_RESPONSE '
+            lowRange = int(parameters[4])
+            highRange = int(parameters[5])
+            if(self.state.isAlive==False):
+                replymsg += 'REPLACE'
+            elif(self.state.lowRange < lowRange or self.state.lowRange >highRange or self.state.highRange<lowRange or self.state.highRange>highRange):
+                replymsg += 'REPLACE'
+            else:
+                replymsg+= 'CORRECT'
+            protocol.sendMessage(replymsg)
+        elif(self.state.isAlive==False):
+            replymsg='I_AM_DEAD'
+            protocol.sendMessage(replymsg)
+        elif data=="HELLO":
             protocol.sendMessage("HELLO")
         elif data.startswith("JOIN_INIT"):
             protocol.sendMessage("WAIT")
@@ -242,6 +257,22 @@ class ServerHandler:
                 self.state.lastlevel.append(newPeerConnection)
             self.state.conns = self.state.conns[:len(self.state.conns)-1]
             self.printinfowithranges()
+        elif data.startswith('FIND_ALTERNATE_VALUE'):
+            parameters = data.split()
+            level = int(parameters[1])
+            lowRange = int(parameters[2])
+            highRange = int(parameters[3])
+            replymsg = 'FIND_ALTERNATE_VALUE_RESPONSE '
+            if(level > len(self.state.conns)):
+                replymsg+='FAILED'
+            else:
+                for conn in self.state.conns[level]:
+                    if(conn.lowRange == lowRange and conn.highRange == highRange):
+                        replymsg+= 'SUCCESS '+conn.addr +' '+str(conn.port)+' '+conn.name
+                        break
+
+            protocol.sendMessage(replymsg)
+
             '''
             nodes = data.split('#')
             
@@ -323,6 +354,25 @@ class ServerHandler:
             for peer in self.state.conns[level]:
                 replymsg+='\n'+peer.addr+' '+str(peer.port)+' '+peer.name+' '+str(peer.lowRange)+' '+str(peer.highRange)
             print(replymsg)
+            protocol.sendMessage(replymsg)
+        elif data.startswith('REQUEST_DETAILS_FOR_N+1_LEVEL_FOR_SACRIFICE'):
+            parameters = data.split()
+            level = str(parameters[1])
+            if(level>len(self.state.conns)):
+                replymsg = 'RESPONSE_DETAILS_FOR_N+1_LEVEL_FOR_SACRIFICE '+str(len(self.state.conns)+1)+' '+str(self.state.lowRange)+' '+str(self.state.highRange)
+                protocol.sendMessage(replymsg)
+            else:
+                self.searchNetworkForAnExtraNode(level)
+        elif data.startswith('CHECK_ALTERNATE_ALIVE_STATUS'):
+
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@someone is requesting things from me!!!!")
+            if(self.state.isAlive==True):
+                replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS True '+str(len(self.state.lastlevel))
+                for conn in self.state.lastlevel:
+                    replymsg +='\n'+conn.addr+' '+str(conn.port)+' '+conn.name
+
+            else:
+                replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS False'
             protocol.sendMessage(replymsg)
         else:
             print(data)
@@ -532,6 +582,7 @@ class ServerHandler:
                 winnerConn = peerConn
 
         if(max <= self.minnumberofpeeratlastlevel):
+            #self.searchNetworkForAnExtraNode(0)
             print("We'll have to collapse the level")
             print("requesting last level info from all my n-1 level peers")
             peerList = self.state.conns[len(self.state.conns)-1][:]
@@ -541,6 +592,10 @@ class ServerHandler:
                 ClientHandler(self.state, peer, 'RequestNodesLastLevel', (lastLevelNodesPeerListMessage, self)).startup()
         else:
             self.beginStealSequence(winnerConn)
+
+
+    def searchNetworkForAnExtraNode(self,level):
+        ClientHandler(self.state, self.state.myconn, 'RequestDetailsForNLevelForSacrifice', (self,levelDetails)).startup()
 
 
     def beginStealSequence(self, winnerConn):
@@ -641,7 +696,6 @@ class ServerHandler:
         for level in range(0, lenConns):
             randIndex = random.randint(0,len(newlist)-1)
             ClientHandler(self.state, newlist[randIndex], 'HelpUpdateThisLevel', (self,level)).startup()
-            print('name!!!!!!!!!!!!!!',newlist[randIndex].name)
 
         '''
         
@@ -650,15 +704,91 @@ class ServerHandler:
 
 
         '''
-        
+    def heartbeatProtocol(self, val):
+        level = 0
+        for connList in self.state.conns:
+            for connection in connList:
+                ClientHandler(self.state, connection, 'HeartBeat',(self, connection, level)).startup()
+            level+=1
 
+        #Need this only when we dont have people in our last layer
+        #for connection in self.state.lastlevel:
+        #    ClientHandler(self.state, connection, 'HeartBeat',(self, connection)).startup()
+        self.printinfowithranges()
+        if self.state.isAlive:
+            reactor.callLater(20, self.heartbeatProtocol, val)
 
-
-
-
-
-
+    def cleanup(self, addr, port, name, level):
+        for conn in self.state.conns[level]:
+            if(conn.addr == addr and conn.port == port):
+                self.findReplacement(conn, level)
     '''
+    #we poll last 3 rings and ask people in the rings if they could provide us with an alternative for this range
+    def findReplacement(self, connection, level):
+        
+        for conn in self.state.lastlevel:
+            if(conn.addr!= self.state.myconn.addr or conn.port!= self.state.myconn.port):
+            ClientHandler(self.state, conn, 'FindReplacement', (self,level, conn.lowRange,conn.highRange)).startup()
+        for i in range(len(self.state.conns)-3:len(self.state.conns)):
+            if(i>=0):
+                for conn in self.state.conns[i]:
+                    ClientHandler(self.state, conn, 'FindReplacement',(self,level, conn.lowRange,conn.highRange)).startup()
+    '''
+    def findReplacement(self, connection, level):
+        peerConnectionsForHelp = []
+        for conn in self.state.lastlevel:
+            if((conn.addr!= self.state.myconn.addr or conn.port!= self.state.myconn.port) and conn not in peerConnectionsForHelp and (conn.addr!= connection.addr or conn.port!= connection.port) ):
+                peerConnectionsForHelp.append(conn)
+        for i in range(len(self.state.conns)-3,len(self.state.conns)):
+            if(i>=0):
+                for conn in self.state.conns[i]:
+                    if((conn.addr!= self.state.myconn.addr or conn.port!= self.state.myconn.port) and conn not in peerConnectionsForHelp and (conn.addr!= connection.addr or conn.port!= connection.port)):
+                        peerConnectionsForHelp.append(conn)
+        print(peerConnectionsForHelp)
+        self.startPollingConnectionHelpForReplacement(peerConnectionsForHelp, connection, level)
+
+    def startPollingConnectionHelpForReplacement(self, peerConnectionsForHelp, connection,level):
+        print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Checking Again~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+        if len(peerConnectionsForHelp) > 0:
+            currentPeerToPoll = peerConnectionsForHelp[0]
+            if len(peerConnectionsForHelp)>0:
+                peerConnectionsForHelp = peerConnectionsForHelp[1:]
+            else:
+                peerConnectionsForHelp = []
+            print('Are we even getting here????????????????????????????????????')
+            ClientHandler(self.state, currentPeerToPoll, 'FindAlternateValue',(self, connection,level, peerConnectionsForHelp)).startup()
+        else:
+            print("retrying!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+    def checkAliveStatus(self, peerConnectionsForHelp, replacementConnection, level, newAlternateConnection):
+        ClientHandler(self.state, newAlternateConnection, 'checkAlternateAliveStatus',(self, replacementConnection, level, peerConnectionsForHelp)).startup()
+        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Checking alive status!",newAlternateConnection.name)
+
+    def replacePeerwithAlternatePeer(self, connections, replacementConnection, level):
+        changeConn = 0
+        for conn in self.state.conns[level]:
+            if (conn.addr == replacementConnection.addr and conn.port == replacementConnection.port):
+                changeConn = conn
+                break
+        randomIndex = random.randint(0, len(connections)-1)
+        randomReplacement = connections[randomIndex]
+        conn.addr = randomReplacement.addr
+        conn.port = randomReplacement.port
+        conn.name = randomReplacement.name
+
+        self.printinfowithranges()
+
+
+
+
+
+
+
+
+
+
+###########################################################################################################################################
+    '''     
     def exitinit(self):
         ## tell people you are leaving, mainly for people in your last level
         # because in other levels your peer's peer may not be you

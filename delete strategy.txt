@@ -1,0 +1,16 @@
+Current Delete Protocol:
+
+1. When a node is trying to leave the network, it sends 'DELETE_ME' message to all its peers in its Hash Range. (This is to be replaced with heartbeats, so that nodes automatically realize that their Hash Range peer has left the network.) Currently, once the node dies, it changes it's 'isAlive' state to False as an alternative to heart beats. 
+
+2. Once the lastlevel peers receive the 'DELETE_ME' message, they check the isAlive state of the said peer to ensure that they do not remove a peer due to malicious node.
+	2.1 Then they check whether any sort of ring shrinkage or node stealing is needed to maintain the structure of the network.(This is similar to checksplit function)
+		For this the nodes elect amongst themselves a leader which coordinates the shrinkage. The leader polls it's N-1 level to see if any node can sacrifice its node without itself going below a threshold.
+			2.1.1 If a node can sacrifice a node from its last level, that node is marked as a sacrifice. All the concerned nodes from the deficit range and the sacrifice range are informed about the sacrifice node.
+				2.1.1.1 The sacrifice node's entire ring structure is rebuilt using random peers from the deficit range. This process is like winner election during join.
+			2.1.2 If we find no sacrifice from n-1 Node, then we are left with two options. We could incrementally check upper layers of our rings to check if anyone is willing to sacrifice a node. Once we reach the upper most level and no node can sacrifice a node, we fix the threshold problem by merging ranges represented by n-1 level and shrinking the rings by one.
+3.Once the restructuring has been done, we are still left with dead nodes in the structure of other peer's rings and the sacrifice nodes could be representing wrong ranges. the cleanup phase begins whenever we send a heartbeat message to the peer and it either fails to respond or responds with a different range. On this we poll our peer for the level where a connection failed to help us get alternate nodes.
+
+What is the left:
+	1. Heartbeat messages do not handle exited node.
+	2. Have been working on byzantine checks to handle malicious users.
+	3. The shrinking strategy as discussed in 2.1.2 could lead to imbalance in the rings/tree. This could eventually be fixed by new join nodes. More tests are required.

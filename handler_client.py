@@ -195,8 +195,26 @@ class ClientHandler:
             p.sendMessage(replymsg)
         elif self.mode=='HelpUpdateThisLevel':
             callback, level = self.extra
-            replymsg = 'HELP_UPDATE_THIS_LEVEL '+self.state.myconn.name +' '+str(level) 
+            replymsg = 'HELP_UPDATE_THIS_LEVEL '+self.state.myconn.name +' '+str(level)
             p.sendMessage(replymsg)
+        elif self.mode=='RequestDetailsForN+1LevelForSacrifice':
+            callback,level,resultlist,addr,port = self.extra
+            print('We came across this!!!!!!!!!!!!!!!')
+            replymsg = 'REQUEST_DETAILS_FOR_N+1_LEVEL_FOR_SACRIFICE '+str(level)+' '+ self.state.addr + ' '+str(self.state.port)
+            p.sendMessage(replymsg)
+        elif self.mode=='HeartBeat':
+            print("Trying to send Heartbeat message")
+            callback, remoteConn, level = self.extra
+            replymsg = 'HEARTBEAT '+remoteConn.addr+' '+str(remoteConn.port)+' '+remoteConn.name+' '  +str(remoteConn.lowRange)+' '+str(remoteConn.highRange)
+            p.sendMessage(replymsg)
+        elif self.mode=='FindAlternateValue':
+            callback, replacementConnection, level, peerConnectionsForHelp = self.extra
+            replymsg = 'FIND_ALTERNATE_VALUE '+str(level) + ' ' +str(replacementConnection.lowRange) + ' ' +str(replacementConnection.highRange)
+            p.sendMessage(replymsg)
+        elif self.mode=='checkAlternateAliveStatus':
+            callback, replacementConnection, level, peerConnectionsForHelp = self.extra
+            replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS'
+            p.sendMessage('CHECK_ALTERNATE_ALIVE_STATUS')
         else:
             p.transport.loseConnection()
 
@@ -304,6 +322,45 @@ class ClientHandler:
                 self.state.conns[levels] = newConnectionLayer
                 print("We were successful")
                 callback.printinfowithranges()
+        elif self.mode=='HeartBeat':
+            callback, remoteConn, level = self.extra
+            parameters = data.split()
+            if(parameters[1]!='CORRECT'):
+                callback.cleanup(remoteConn.addr, remoteConn.port, remoteConn.name, level)
+            protocol.transport.loseConnection()
+        elif self.mode=='FindAlternateValue':
+            if(data.startswith('FIND_ALTERNATE_VALUE_RESPONSE')):
+                callback, replacementConnection, level, peerConnectionsForHelp = self.extra
+                parameters = data.split()
+                if(len(parameters)<3 or parameters[1]=='FAILED'):
+                    print("Will have to look for an Alternate!!!!!!!!!!!!")
+                    callback.startPollingConnectionHelpForReplacement(peerConnectionsForHelp, replacementConnection, level)
+                else:
+                    addr = parameters[2]
+                    port = int(parameters[3])
+                    name = parameters[4]
+                    newAlternateConnection = Conn(addr, port, name)
+                    print("Finallly Found SomeOne!!!!!!!!!!!!!!!!!!!!!!")
+                    callback.checkAliveStatus(peerConnectionsForHelp, replacementConnection, level, newAlternateConnection)
+            protocol.transport.loseConnection()
+        elif self.mode=='checkAlternateAliveStatus':
+            callback, replacementConnection, level, peerConnectionsForHelp = self.extra
+            #protocol.transport.loseConnection()
+            if(data.startswith('CHECK_ALTERNATE_ALIVE_STATUS True')):
+                parameters = data.split('\n')
+                totalPeersSent = int(parameters[0].split()[2])
+                connections = []
+                for i in range(1,1+totalPeersSent):
+                    peerDets = parameters[i]
+                    addr = peerDets[0]
+                    port=int(peerDets[1])
+                    name = peerDets[2]
+                    connection = Conn(addr, port, name)
+                    connections.append(connection)
+                print("Time to replace the connection@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+                callback.replacePeerwithAlternatePeer(connections, replacementConnection, level)    
+            else:
+                callback.startPollingConnectionHelpForReplacement(peerConnectionsForHelp, replacementConnection, level)
         else:
             print('closing connection')
             protocol.transport.loseConnection()
