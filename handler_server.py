@@ -8,6 +8,7 @@ from sys import stdout
 import math
 from handler_client import ClientHandler
 from data_state import Conn
+import time
 
 ## comment preceded by '##' is concerned with over structure of code
 # comment preceded by '#' is concerned with a specific segment's purpose
@@ -775,8 +776,10 @@ class ServerHandler:
         conn.addr = randomReplacement.addr
         conn.port = randomReplacement.port
         conn.name = randomReplacement.name
-
+        print('~~~~~~~~~conn details',conn.addr, conn.port, conn.name)
+        print('~~~~~~~~~random replacement details', randomReplacement.addr,randomReplacement.port, randomReplacement.name)
         self.printinfowithranges()
+        time.sleep(30)
 
 
 

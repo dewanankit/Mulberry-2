@@ -351,7 +351,7 @@ class ClientHandler:
                 totalPeersSent = int(parameters[0].split()[2])
                 connections = []
                 for i in range(1,1+totalPeersSent):
-                    peerDets = parameters[i]
+                    peerDets = parameters[i].split()
                     addr = peerDets[0]
                     port=int(peerDets[1])
                     name = peerDets[2]
