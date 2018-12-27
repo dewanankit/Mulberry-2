@@ -119,22 +119,22 @@ class ClientHandler:
                 replymsg=replymsg+"\n"+conn.addr+" "+str(conn.port)+" "+conn.name
             p.sendMessage(replymsg)
         elif self.mode=='DeleteMe':
-            print("Requesting Delete")
+            #print("Requesting Delete")
             replymsg="DELETE_ME "+self.state.myconn.name+" "+self.state.myconn.addr+" "+str(self.state.myconn.port)+" "+self.state.myconn.name+" "+str(self.state.lowRange)+' '+str(self.state.highRange)
             p.sendMessage(replymsg)
         elif self.mode=='RequestingInfoLastLevel':
-            print("Requesting state from my peers in n-1 level")
+            #print("Requesting state from my peers in n-1 level")
             replymsg = "REQUESTING_INFO_LAST_LEVEL "+self.state.myconn.name+" "+self.state.myconn.addr+" "+str(self.state.myconn.port)+" "+self.state.myconn.name
             p.sendMessage(replymsg)
         elif self.mode=='RequestNodesLastLevel':
-            print(self.remote.name,"Requesting all peer nodes in n-1 level to share their nodes in n-1 level!!!!!!!!!!!!!!!!!!!!!!!")
+            #print(self.remote.name,"Requesting all peer nodes in n-1 level to share their nodes in n-1 level!!!!!!!!!!!!!!!!!!!!!!!")
             replymsg = "REQUEST_NODES_LAST_LEVEL "+self.state.myconn.name
             p.sendMessage(replymsg)
         elif self.mode=='InsertLastLevelDeleteN-1LevelShareWithLastLevel':
-            print("Trying to send a message across!!!!!!!!")
+            #print("Trying to send a message across!!!!!!!!")
             replymsg = 'SHRINK_ONE_LAYER_UPDATE_LAST_LEVEL '+self.state.myconn.addr + ' '+ str(self.state.myconn.port)+' ' +self.state.myconn.name+' '+str(self.state.lowRange)+' '+str(self.state.highRange)
             callBack, newPeers = self.extra
-            print('newPeers',newPeers)
+            #print('newPeers',newPeers)
             for newPeer in newPeers:
                 replymsg+='\n'+newPeer.addr+' '+str(newPeer.port)+' '+newPeer.name+' '+str(newPeer.lowRange)+' '+str(newPeer.highRange)
             p.sendMessage(replymsg)
@@ -163,9 +163,8 @@ class ClientHandler:
             p.sendMessage(replymsg)
             '''
         elif self.mode=='DeleteOneNodeGrantOneNode':
-            print("Did we even get here?")
-            print("WTF")
-            print(self.state.myconn.addr)
+            #print("Did we even get here?")
+            #print(self.state.myconn.addr)
             #print('remote.name',remote.name)
             replymsg = 'DELETE_ONE_NODE_GRANT_ONE_NODE '+self.state.myconn.name + ' '+self.state.myconn.addr+' '+str(self.state.myconn.port)+' '+self.state.myconn.name
             print(replymsg)

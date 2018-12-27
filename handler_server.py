@@ -751,21 +751,21 @@ class ServerHandler:
         self.startPollingConnectionHelpForReplacement(peerConnectionsForHelp, connection, level)
 
     def startPollingConnectionHelpForReplacement(self, peerConnectionsForHelp, connection,level):
-        print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Checking Again~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+        #print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Checking Again~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
         if len(peerConnectionsForHelp) > 0:
             currentPeerToPoll = peerConnectionsForHelp[0]
             if len(peerConnectionsForHelp)>0:
                 peerConnectionsForHelp = peerConnectionsForHelp[1:]
             else:
                 peerConnectionsForHelp = []
-            print('Are we even getting here????????????????????????????????????')
+            #print('Are we even getting here????????????????????????????????????')
             ClientHandler(self.state, currentPeerToPoll, 'FindAlternateValue',(self, connection,level, peerConnectionsForHelp)).startup()
         else:
-            print("retrying!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            print("retrying!!!!!!")
 
     def checkAliveStatus(self, peerConnectionsForHelp, replacementConnection, level, newAlternateConnection):
         ClientHandler(self.state, newAlternateConnection, 'checkAlternateAliveStatus',(self, replacementConnection, level, peerConnectionsForHelp)).startup()
-        print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Checking alive status!",newAlternateConnection.name)
+        #print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Checking alive status!",newAlternateConnection.name)
 
     def replacePeerwithAlternatePeer(self, connections, replacementConnection, level):
         changeConn = 0
@@ -775,14 +775,14 @@ class ServerHandler:
                 break
         randomIndex = random.randint(0, len(connections)-1)
         randomReplacement = connections[randomIndex]
-        print('Connections',connections)
+        #print('Connections',connections)
         for conn in connections:
             print('details',conn.addr, conn.port, conn.name)
         conn.addr = randomReplacement.addr
         conn.port = randomReplacement.port
         conn.name = randomReplacement.name
-        print('~~~~~~~~~conn details',conn.addr, conn.port, conn.name)
-        print('~~~~~~~~~random replacement details', randomReplacement.addr,randomReplacement.port, randomReplacement.name)
+        #print('~~~~~~~~~conn details',conn.addr, conn.port, conn.name)
+        #print('~~~~~~~~~random replacement details', randomReplacement.addr,randomReplacement.port, randomReplacement.name)
         self.printinfowithranges()
 
 
@@ -793,7 +793,7 @@ class ServerHandler:
 
 
 
-
+###OLD CODE FOR DELETE###
 ###########################################################################################################################################
     '''     
     def exitinit(self):
