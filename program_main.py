@@ -51,7 +51,7 @@ def main():
     server=setupserver(state)
     if argresult.exit!=None:
         reactor.callLater((argresult.exit[0]), (server.exitinit))
-    reactor.callLater(30,server.heartbeatProtocol, 35)
+    #reactor.callLater(30,server.heartbeatProtocol, 35)
     reactor.run()
     return 0
 

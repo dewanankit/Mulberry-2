@@ -217,11 +217,12 @@ class ClientHandler:
             p.sendMessage(replymsg)
         elif self.mode == 'findAllDepths':
             callback, level = self.extra
-            replymsg = 'FIND_ALL_DEPTHS '+ str(level)
+            replymsg = 'FIND_ALL_DEPTHS '+ self.state.myconn.name+' '+str(level)
+            print('~~~~~~~~~~~~sending FIND_ALL_DEPTHS message to ',self.remote.name, level)
             p.sendMessage(replymsg)
         elif self.mode == 'findAllDepths2':
             callback, level, parentConnection, responses = self.extra
-            replymsg = 'FIND_ALL_DEPTHS '+ str(level)
+            replymsg = 'FIND_ALL_DEPTHS '+ self.state.myconn.name+' '+str(level)
             p.sendMessage(replymsg)
         else:
             p.transport.loseConnection()
@@ -371,11 +372,12 @@ class ClientHandler:
                 callback.startPollingConnectionHelpForReplacement(peerConnectionsForHelp, replacementConnection, level)
         elif self.mode=='findAllDepths':
             print('Got a reply from',self.remote.name)
-            time.sleep(30)
+            print(data)
         elif self.mode=='findAllDepths2':
             callback, level, parentConnection, responses = self.extra
-            print('sending reply to ',parentConnection.name)
-            parentConnection.sendMessage("This is my reply!!!!!!!!!!!!!!!!!!!!!!!")
+            responses.append(data)
+            if(len(responses) == len(self.state.conns)):
+                callback.sendParentRandomizedResponse(parentConnection, responses)
         else:
             print('closing connection')
             protocol.transport.loseConnection()

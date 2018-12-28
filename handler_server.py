@@ -377,9 +377,10 @@ class ServerHandler:
             else:
                 replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS False'
             protocol.sendMessage(replymsg)
-        elif data.startswith(FIND_ALL_DEPTHS):
+        elif data.startswith('FIND_ALL_DEPTHS'):
             parameters = data.split()
-            level = int(parameters[1])
+            print("~~~~~~~~~~~Got the message from",parameters[1])
+            level = int(parameters[2])
             self.checkDepth(protocol, level)
         else:
             print(data)
@@ -589,7 +590,9 @@ class ServerHandler:
                 winnerConn = peerConn
 
         if(max <= self.minnumberofpeeratlastlevel):
+            self.findRangeWithMaxDepth(0)
             #self.searchNetworkForAnExtraNode(0)
+            '''
             print("We'll have to collapse the level")
             print("requesting last level info from all my n-1 level peers")
             peerList = self.state.conns[len(self.state.conns)-1][:]
@@ -597,6 +600,7 @@ class ServerHandler:
             for peer in peerList:
                 print("requesting info!!!",peer.name)
                 ClientHandler(self.state, peer, 'RequestNodesLastLevel', (lastLevelNodesPeerListMessage, self)).startup()
+            '''
         else:
             self.beginStealSequence(winnerConn)
 
@@ -793,14 +797,26 @@ class ServerHandler:
         ClientHandler(self.state, self.state.myconn, 'findAllDepths',(self, level)).startup()
 
     def checkDepth(self, parentConnection, level):
-        if(len(self.state.conns) > level):
-            replymsg = 'FIND_ALL_DEPTHS_RESPONSE '+str(level)+ ' '+str(len(self.state.lastlevel))+' '+str(self.state.lowRange)+' '+str(self.state.highRange)
+        print('Trying to send a message.. Let"s see')
+        if(len(self.state.conns) <= level):
+            replymsg = 'RESPONSE_FIND_ALL_DEPTHS '+str(level)+ ' '+self.state.myconn.name+' '+self.state.myconn.addr+' '+str(self.state.myconn.port)+' '+str(len(self.state.lastlevel))+' '+str(self.state.lowRange)+' '+str(self.state.highRange)
             parentConnection.sendMessage(replymsg)
         else:
             responses = []
             for conn in self.state.conns[level]:
+                print('sending message to ', conn.name)
                 ClientHandler(self.state, conn, 'findAllDepths2',(self, level+1, parentConnection, responses)).startup()
 
+    def sendParentRandomizedResponse(self, parentConnection, responses):
+        max = 0
+        replymsg = ''
+        for message in responses:
+            if(message.startswith('RESPONSE_FIND_ALL_DEPTHS')):
+                parameters = message.split()
+                level = int(parameters[1])
+                if(level>max):
+                    replymsg = message
+        parentConnection.sendMessage(replymsg)
 
 
 
