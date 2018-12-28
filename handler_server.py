@@ -377,6 +377,10 @@ class ServerHandler:
             else:
                 replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS False'
             protocol.sendMessage(replymsg)
+        elif data.startswith(FIND_ALL_DEPTHS):
+            parameters = data.split()
+            level = int(parameters[1])
+            self.checkDepth(protocol, level)
         else:
             print(data)
             protocol.sendMessage("NO SUPPORT")
@@ -784,6 +788,18 @@ class ServerHandler:
         #print('~~~~~~~~~conn details',conn.addr, conn.port, conn.name)
         #print('~~~~~~~~~random replacement details', randomReplacement.addr,randomReplacement.port, randomReplacement.name)
         self.printinfowithranges()
+
+    def findRangeWithMaxDepth(self, level):
+        ClientHandler(self.state, self.state.myconn, 'findAllDepths',(self, level)).startup()
+
+    def checkDepth(self, parentConnection, level):
+        if(len(self.state.conns) > level):
+            replymsg = 'FIND_ALL_DEPTHS_RESPONSE '+str(level)+ ' '+str(len(self.state.lastlevel))+' '+str(self.state.lowRange)+' '+str(self.state.highRange)
+            parentConnection.sendMessage(replymsg)
+        else:
+            responses = []
+            for conn in self.state.conns[level]:
+                ClientHandler(self.state, conn, 'findAllDepths2',(self, level+1, parentConnection, responses)).startup()
 
 
 

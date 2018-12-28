@@ -4,6 +4,7 @@ from twisted.internet.protocol import Factory
 from twisted.internet.endpoints import TCP4ClientEndpoint
 import sys
 from data_state import Conn
+import time
 #from sys import stdout
 
 class MulClient(Protocol):
@@ -214,6 +215,14 @@ class ClientHandler:
             callback, replacementConnection, level, peerConnectionsForHelp = self.extra
             replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS ' + str(replacementConnection.lowRange) +' '+str(replacementConnection.highRange)
             p.sendMessage(replymsg)
+        elif self.mode == 'findAllDepths':
+            callback, level = self.extra
+            replymsg = 'FIND_ALL_DEPTHS '+ str(level)
+            p.sendMessage(replymsg)
+        elif self.mode == 'findAllDepths2':
+            callback, level, parentConnection, responses = self.extra
+            replymsg = 'FIND_ALL_DEPTHS '+ str(level)
+            p.sendMessage(replymsg)
         else:
             p.transport.loseConnection()
 
@@ -360,6 +369,13 @@ class ClientHandler:
                 callback.replacePeerwithAlternatePeer(connections, replacementConnection, level)    
             else:
                 callback.startPollingConnectionHelpForReplacement(peerConnectionsForHelp, replacementConnection, level)
+        elif self.mode=='findAllDepths':
+            print('Got a reply from',self.remote.name)
+            time.sleep(30)
+        elif self.mode=='findAllDepths2':
+            callback, level, parentConnection, responses = self.extra
+            print('sending reply to ',parentConnection.name)
+            parentConnection.sendMessage("This is my reply!!!!!!!!!!!!!!!!!!!!!!!")
         else:
             print('closing connection')
             protocol.transport.loseConnection()
