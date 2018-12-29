@@ -62,7 +62,7 @@ class ServerHandler:
         self.state=state
         self.joinatnormal_stagep=0
         # max number is non inclusive and min number is inclusive
-        self.maxnumberofpeeratlastlevel=8
+        self.maxnumberofpeeratlastlevel=16
         self.minnumberofpeeratlastlevel=2
 
     ## code must be used to make twisted work
@@ -589,6 +589,7 @@ class ServerHandler:
                 max = lastLevelSize
                 winnerConn = peerConn
 
+        
         if(max <= self.minnumberofpeeratlastlevel):
             self.findRangeWithMaxDepth(0)
             #self.searchNetworkForAnExtraNode(0)
@@ -748,6 +749,7 @@ class ServerHandler:
     def findReplacement(self, connection, level):
         peerConnectionsForHelp = []
         for conn in self.state.lastlevel:
+            #need to fix this logic
             if((conn.addr!= self.state.myconn.addr or conn.port!= self.state.myconn.port) and conn not in peerConnectionsForHelp and (conn.addr!= connection.addr or conn.port!= connection.port) ):
                 peerConnectionsForHelp.append(conn)
         for i in range(len(self.state.conns)-3,len(self.state.conns)):
@@ -808,20 +810,47 @@ class ServerHandler:
                 ClientHandler(self.state, conn, 'findAllDepths2',(self, level+1, parentConnection, responses)).startup()
 
     def sendParentRandomizedResponse(self, parentConnection, responses):
-        max = 0
+        maxVal = 0
+        nodesAtLastLevel = 0
         replymsg = ''
+        for message in responses:
+            print('message',message)
         for message in responses:
             if(message.startswith('RESPONSE_FIND_ALL_DEPTHS')):
                 parameters = message.split()
                 level = int(parameters[1])
-                if(level>max):
+                lastLevelConnections = int(parameters[5])
+                if(level>maxVal):
                     replymsg = message
+                    maxVal = level
+                    nodesAtLastLevel = lastLevelConnections
+                elif(level==max and lastLevelConnections>nodesAtLastLevel):
+                    replymsg = message
+                    maxVal = level
+                    nodesAtLastLevel = lastLevelConnections
+        print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+        print('replymsg',replymsg)
+        print('sleeping')
+        time.sleep(20)
         parentConnection.sendMessage(replymsg)
 
+    def doStealSequenceFromThisGuy(self, addr, port, name, lowRange, highRange):
+        print("Fix this!")
 
+    def reduceALevel(self):
+        print("Must reduce a level!!!!!!!!!!!")
+        print("We'll have to collapse the level")
+        print("requesting last level info from all my n-1 level peers")
+        peerList = self.state.conns[len(self.state.conns)-1][:]
+        lastLevelNodesPeerListMessage = []
+        for peer in peerList:
+            print("requesting info!!!",peer.name)
+            ClientHandler(self.state, peer, 'RequestNodesLastLevel', (lastLevelNodesPeerListMessage, self)).startup()
 
-
-
+    def heartbeatProtocol2ForPrinting(self):
+        self.printinfowithranges()
+        if(self.state.isAlive):
+            reactor.callLater(10, self.heartbeatProtocol2ForPrinting)
 
 
 

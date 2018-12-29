@@ -133,7 +133,7 @@ class ClientHandler:
             p.sendMessage(replymsg)
         elif self.mode=='InsertLastLevelDeleteN-1LevelShareWithLastLevel':
             #print("Trying to send a message across!!!!!!!!")
-            replymsg = 'SHRINK_ONE_LAYER_UPDATE_LAST_LEVEL '+self.state.myconn.addr + ' '+ str(self.state.myconn.port)+' ' +self.state.myconn.name+' '+str(self.state.lowRange)+' '+str(self.state.highRange)
+            replymsg = 'SHRINK_ONE_LAYER_UPDATE_LAST_LEVEL '+self.state.myconn.addr+ ' '+str(self.state.myconn.port)+' ' +self.state.myconn.name+' '+str(self.state.lowRange)+' '+str(self.state.highRange)
             callBack, newPeers = self.extra
             #print('newPeers',newPeers)
             for newPeer in newPeers:
@@ -213,7 +213,7 @@ class ClientHandler:
             p.sendMessage(replymsg)
         elif self.mode=='checkAlternateAliveStatus':
             callback, replacementConnection, level, peerConnectionsForHelp = self.extra
-            replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS ' + str(replacementConnection.lowRange) +' '+str(replacementConnection.highRange)
+            replymsg = 'CHECK_ALTERNATE_ALIVE_STATUS ' + str(replacementConnection.lowRange)+' '+str(replacementConnection.highRange)
             p.sendMessage(replymsg)
         elif self.mode == 'findAllDepths':
             callback, level = self.extra
@@ -372,11 +372,26 @@ class ClientHandler:
                 callback.startPollingConnectionHelpForReplacement(peerConnectionsForHelp, replacementConnection, level)
         elif self.mode=='findAllDepths':
             print('Got a reply from',self.remote.name)
-            print(data)
+            callback, l = self.extra
+            if data.startswith('RESPONSE_FIND_ALL_DEPTHS'):
+                parameters = data.split()
+                maxlevel = int(parameters[1])
+                maxname = parameters[2]
+                maxaddr = parameters[3]
+                maxport = int(parameters[4])
+                maxlowRange = int(parameters[6])
+                maxhighRange = int(parameters[7])
+                if(maxlevel>len(self.state.conns)):
+                    callback.doStealSequenceFromThisGuy(maxaddr, maxport, maxname, maxlowRange, maxhighRange)
+                else:
+                    callback.reduceALevel()
+            else:
+                callback.reduceALevel()
+
         elif self.mode=='findAllDepths2':
             callback, level, parentConnection, responses = self.extra
             responses.append(data)
-            if(len(responses) == len(self.state.conns)):
+            if(len(responses) == len(self.state.conns[level-1])):
                 callback.sendParentRandomizedResponse(parentConnection, responses)
         else:
             print('closing connection')

@@ -52,6 +52,7 @@ def main():
     if argresult.exit!=None:
         reactor.callLater((argresult.exit[0]), (server.exitinit))
     #reactor.callLater(30,server.heartbeatProtocol, 35)
+    reactor.callLater(10,server.heartbeatProtocol2ForPrinting)
     reactor.run()
     return 0
 
