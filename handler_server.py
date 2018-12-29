@@ -62,7 +62,7 @@ class ServerHandler:
         self.state=state
         self.joinatnormal_stagep=0
         # max number is non inclusive and min number is inclusive
-        self.maxnumberofpeeratlastlevel=16
+        self.maxnumberofpeeratlastlevel=8
         self.minnumberofpeeratlastlevel=2
 
     ## code must be used to make twisted work
@@ -334,7 +334,7 @@ class ServerHandler:
             newJoinerAddr = parameters[1]
             newJoinerPort = int(parameters[2])
             newJoinerName = parameters[3]
-            connection = Conn(newJoinerAddr, newJoinerPort, newJoinerName)
+            connection = Conn(newJoinerAddr, newJoinerPort, newJoinerName, self.state.lowRange, self.state.highRange)
             protocol.sendMessage("we'll handle this")
             for peer in self.state.lastlevel:
                 ClientHandler(self.state,peer,'joinThisSacrificeNodeToOurNetwork',connection).startup()
@@ -343,7 +343,9 @@ class ServerHandler:
             addr = parameters[1]
             port = int(parameters[2])
             name = parameters[3]
-            connection = Conn(addr, port, name)
+            lowRange = int(parameters[4])
+            highRange = int(parameters[5])
+            connection = Conn(addr, port, name,lowRange, highRange)
             self.state.lastlevel.append(connection)
             self.printinfowithranges()
             protocol.sendMessage('Done. Close Connection')
@@ -589,11 +591,9 @@ class ServerHandler:
                 max = lastLevelSize
                 winnerConn = peerConn
 
-        
         if(max <= self.minnumberofpeeratlastlevel):
             self.findRangeWithMaxDepth(0)
-            #self.searchNetworkForAnExtraNode(0)
-            '''
+            '''            
             print("We'll have to collapse the level")
             print("requesting last level info from all my n-1 level peers")
             peerList = self.state.conns[len(self.state.conns)-1][:]
@@ -604,7 +604,7 @@ class ServerHandler:
             '''
         else:
             self.beginStealSequence(winnerConn)
-
+        
 
     def searchNetworkForAnExtraNode(self,level):
         ClientHandler(self.state, self.state.myconn, 'RequestDetailsForNLevelForSacrifice', (self,levelDetails)).startup()
@@ -710,10 +710,7 @@ class ServerHandler:
             ClientHandler(self.state, newlist[randIndex], 'HelpUpdateThisLevel', (self,level)).startup()
 
         '''
-        
-
         #fixingOtherLevels to be solved by heartbeats
-
 
         '''
     def heartbeatProtocol(self, val):
@@ -824,18 +821,22 @@ class ServerHandler:
                     replymsg = message
                     maxVal = level
                     nodesAtLastLevel = lastLevelConnections
-                elif(level==max and lastLevelConnections>nodesAtLastLevel):
+                elif(level==maxVal and lastLevelConnections>nodesAtLastLevel):
                     replymsg = message
                     maxVal = level
                     nodesAtLastLevel = lastLevelConnections
         print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
         print('replymsg',replymsg)
         print('sleeping')
-        time.sleep(20)
+        #time.sleep(10)
         parentConnection.sendMessage(replymsg)
 
     def doStealSequenceFromThisGuy(self, addr, port, name, lowRange, highRange):
-        print("Fix this!")
+        winnerconn = Conn(addr, port, name, lowRange, highRange)
+        print("Trying to steal a node!!!!!!!!!!!!")
+        time.sleep(30)
+        self.beginStealSequence(winnerConn)
+
 
     def reduceALevel(self):
         print("Must reduce a level!!!!!!!!!!!")

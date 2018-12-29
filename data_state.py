@@ -19,6 +19,8 @@ class State:
         self.timeStamp = {}
         self.lowRange = lowRange
         self.highRange = highRange
+        self.maxnumberofpeeratlastlevel=8
+        self.minnumberofpeeratlastlevel=2
         return
 
     def addlevel(self,list):

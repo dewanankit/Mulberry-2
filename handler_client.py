@@ -191,7 +191,7 @@ class ClientHandler:
         elif self.mode=='joinThisSacrificeNodeToOurNetwork':
             connection = self.extra
             #print('connection.addr!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',connection.addr)
-            replymsg = 'JOIN_THIS_SACRIFICE_NODE_TO_OUR_NETWORK '+connection.addr + ' '+str(connection.port) + ' ' + connection.name
+            replymsg = 'JOIN_THIS_SACRIFICE_NODE_TO_OUR_NETWORK '+connection.addr + ' '+str(connection.port) + ' ' + connection.name+' '+str(connection.lowRange)+' '+str(connection.highRange)
             p.sendMessage(replymsg)
         elif self.mode=='HelpUpdateThisLevel':
             callback, level = self.extra
@@ -379,11 +379,21 @@ class ClientHandler:
                 maxname = parameters[2]
                 maxaddr = parameters[3]
                 maxport = int(parameters[4])
+                lastlevelnodecount = int(parameters[5])
                 maxlowRange = int(parameters[6])
                 maxhighRange = int(parameters[7])
-                if(maxlevel>len(self.state.conns)):
+                print(data)
+                print(maxlevel,'maxlevel')
+                print('connsLength',len(self.state.conns))
+                print('lastlevelnodecount', lastlevelnodecount)
+                print('self.state.minnumberofpeeratlastlevel',self.state.minnumberofpeeratlastlevel)
+                if((maxlevel>len(self.state.conns)) or (maxlevel==len(self.state.conns) and lastlevelnodecount > self.state.minnumberofpeeratlastlevel)):
+                    print('We came here')
+                    while(True):pass
                     callback.doStealSequenceFromThisGuy(maxaddr, maxport, maxname, maxlowRange, maxhighRange)
                 else:
+                    print("No we came here!!!")
+                    while(True):pass
                     callback.reduceALevel()
             else:
                 callback.reduceALevel()
